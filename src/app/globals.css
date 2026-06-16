@@ -1,26 +1,172 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ──────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Arena colors */
+  --clr-void: #030508;
+  --clr-pitch: #0a0f1a;
+  --clr-mid: #10192e;
+  --clr-surface: #141d30;
+  --clr-border: #1e2d44;
+
+  /* Fight accent palette */
+  --clr-gold: #e8b84b;
+  --clr-gold-dim: #a07a20;
+  --clr-red: #d02828;
+  --clr-red-hot: #ff3333;
+  --clr-electric: #00d4ff;
+  --clr-electric-dim: #0088aa;
+
+  /* Typography */
+  --clr-text-primary: #f0e8d8;
+  --clr-text-secondary: #8a9bb8;
+  --clr-text-dim: #3d5068;
+
+  /* Fonts */
+  --font-display: var(--font-display-loaded, "Anton"), "Bebas Neue", impact, sans-serif;
+  --font-body: var(--font-body-loaded, "Inter"), system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded, "JetBrains Mono"), "Fira Code", monospace;
+
+  /* Spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 2rem;
+  --space-xl: 4rem;
+  --space-2xl: 8rem;
+
+  /* Type scale (monumental → fine) */
+  --size-monumental: clamp(5rem, 18vw, 16rem);
+  --size-hero: clamp(2.5rem, 8vw, 7rem);
+  --size-editorial: clamp(1.5rem, 4vw, 3.5rem);
+  --size-section: clamp(1rem, 2.5vw, 2rem);
+  --size-body: 1rem;
+  --size-fine: 0.75rem;
+  --size-micro: 0.625rem;
+
+  /* Motion easing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-expo: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-fight: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Base Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--clr-void);
+  color: var(--clr-text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
+/* ─── Halftone noise layer ───────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* ─── SF Scanline overlay ────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+}
+
+/* ─── Utility ────────────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+.text-monumental {
+  font-family: var(--font-display);
+  font-size: var(--size-monumental);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.text-hero {
+  font-family: var(--font-display);
+  font-size: var(--size-hero);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.text-editorial {
+  font-family: var(--font-display);
+  font-size: var(--size-editorial);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.text-fine {
+  font-family: var(--font-mono);
+  font-size: var(--size-fine);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.text-micro {
+  font-family: var(--font-mono);
+  font-size: var(--size-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Gold stroke text */
+.text-stroke-gold {
+  -webkit-text-stroke: 2px var(--clr-gold);
+  color: transparent;
+}
+
+.text-stroke-red {
+  -webkit-text-stroke: 2px var(--clr-red);
+  color: transparent;
+}
+
+/* ─── Ink stamp border ───────────────────────────────────────── */
+.stamp-border {
+  border: 2px solid var(--clr-gold);
+  padding: 0.2em 0.6em;
+  display: inline-block;
+  transform: rotate(-1deg);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--clr-void); }
+::-webkit-scrollbar-thumb { background: var(--clr-gold-dim); border-radius: 2px; }
+
+/* ─── Mobile token overrides ─────────────────────────────────── */
+@media (max-width: 640px) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --space-xl: 2rem;
+    --space-2xl: 3.5rem;
+    --size-monumental: clamp(3.5rem, 20vw, 6rem);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Reduced motion fallback ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

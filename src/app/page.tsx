@@ -1,65 +1,110 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useMemo } from "react";
+import ArenaHero from "@/components/landing/ArenaHero";
+import MatchdaySelector from "@/components/landing/MatchdaySelector";
+import VersusStage from "@/components/landing/VersusStage";
+import ScheduleField from "@/components/landing/ScheduleField";
+import { fixtures as allFixtures, Fixture } from "@/data/fixtures";
+
+export default function HomePage() {
+  const [activeMatchday, setActiveMatchday] = useState(1);
+  const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
+
+  const filteredFixtures = useMemo(
+    () => allFixtures.filter((f) => f.matchday === activeMatchday),
+    [activeMatchday]
+  );
+
+  function handleMatchdayChange(id: number) {
+    setActiveMatchday(id);
+    setSelectedFixture(null);
+  }
+
+  function handleFixtureSelect(fixture: Fixture) {
+    setSelectedFixture((prev) => (prev?.id === fixture.id ? null : fixture));
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main
+      style={{
+        position: "relative",
+        zIndex: 2,
+        minHeight: "100vh",
+        background: "var(--clr-void)",
+      }}
+    >
+      {/* ── Scene 1: Arena Hero ── */}
+      <ArenaHero />
+
+      {/* ── Scene 2: Matchday Selector + Schedule ── */}
+      <div
+        style={{
+          position: "relative",
+          background: "var(--clr-void)",
+        }}
+      >
+        <MatchdaySelector active={activeMatchday} onChange={handleMatchdayChange} />
+
+        {/* ── Scene 3: Versus Stage (signature interaction) ── */}
+        <VersusStage fixture={selectedFixture} />
+
+        {/* ── Scene 4: Schedule Field (fight tickets) ── */}
+        <ScheduleField
+          fixtures={filteredFixtures}
+          activeId={selectedFixture?.id ?? null}
+          onSelect={handleFixtureSelect}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+
+      {/* ── Scene 5: Footer strip — intentionally quiet ── */}
+      <footer
+        style={{
+          borderTop: "1px solid var(--clr-border)",
+          padding: "2rem clamp(1rem, 4vw, 2rem)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "1rem",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div className="flex flex-col gap-1">
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(0.8rem, 1.5vw, 1.1rem)",
+              color: "var(--clr-gold)",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            World Cup 2026
+          </span>
+          <span
+            className="text-micro"
+            style={{ color: "var(--clr-text-dim)" }}
           >
-            Documentation
-          </a>
+            USA · CANADA · MEXICO
+          </span>
         </div>
-      </main>
-    </div>
+
+        <div
+          className="flex items-center gap-6"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--size-micro)",
+            color: "var(--clr-text-dim)",
+            letterSpacing: "0.15em",
+          }}
+        >
+          <span>FAN USE ONLY</span>
+          <span>·</span>
+          <span>NOT AFFILIATED WITH FIFA</span>
+          <span>·</span>
+          <span>ALL TIMES LOCAL</span>
+        </div>
+      </footer>
+    </main>
   );
 }
