@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import CharacterSelectScreen from "@/components/character-select/CharacterSelectScreen";
+import CharacterSelectWrapper from "@/components/character-select/CharacterSelectWrapper";
 
 export const metadata: Metadata = {
   title: "Character Select — World Cup 2026",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function CharacterSelectPage() {
-  return <CharacterSelectScreen />;
+  return <CharacterSelectWrapper />;
 }
