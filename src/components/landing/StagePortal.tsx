@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import NationBelt from "@/components/landing/NationBelt";
@@ -10,10 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 /** Scroll distance for the portal hole animation */
 export const STAGE_RUNWAY_VH = 800;
 
-/** Scroll distance for scene 2 sliding up over scene 1 */
-const STACK_SCROLL_VH = 100;
-
-const RUNWAY_TOTAL_VH = STACK_SCROLL_VH + STAGE_RUNWAY_VH;
+const RUNWAY_TOTAL_VH = STAGE_RUNWAY_VH;
 
 /** Hole center — aligned to the red frame in stage-web.png */
 const HOLE_CENTER = { cx: 0.5, cy: 0.44 };
@@ -33,11 +30,7 @@ const HOLE_END = { x: -1, y: -1, width: 3, height: 3 };
 /** Soft feather on the mask cutout (objectBoundingBox units) */
 const HOLE_EDGE_BLUR = 0.006;
 
-interface StagePortalProps {
-  arenaRef?: RefObject<HTMLElement | null>;
-}
-
-export default function StagePortal({ arenaRef }: StagePortalProps) {
+export default function StagePortal() {
   const runwayRef = useRef<HTMLDivElement>(null);
   const stageLayerRef = useRef<HTMLDivElement>(null);
   const holeRef = useRef<SVGRectElement>(null);
@@ -60,28 +53,6 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
     if (skip) return;
 
     const ctx = gsap.context(() => {
-      const stackSt = {
-        trigger: runwayRef.current,
-        start: "top top",
-        end: "+=100svh",
-        scrub: 0.6,
-      };
-
-      /* Pin scene 1 while scene 2 slides up to cover it */
-      if (arenaRef?.current) {
-        ScrollTrigger.create({
-          ...stackSt,
-          pin: arenaRef.current,
-          pinSpacing: false,
-        });
-      }
-
-      gsap.fromTo(
-        stageLayerRef.current,
-        { y: "100svh" },
-        { y: 0, ease: "none", scrollTrigger: stackSt }
-      );
-
       const portalSt = {
         trigger: runwayRef.current,
         start: "top top",
@@ -134,7 +105,7 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
     }, runwayRef);
 
     return () => ctx.revert();
-  }, [skip, arenaRef]);
+  }, [skip]);
 
   if (skip) return <NationBelt />;
 
@@ -144,11 +115,10 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
       className="relative z-10"
       style={{ height: `${RUNWAY_TOTAL_VH}vh` }}
     >
-      {/* Scene 2 + 3 — slide up over scene 1, then pin for portal scroll */}
+      {/* Scene 2 + 3 — normal flow, then pin for portal scroll */}
       <div
         ref={stageLayerRef}
-        className="absolute inset-x-0 top-0 z-[10] h-svh w-full overflow-hidden"
-        style={{ transform: "translateY(100svh)" }}
+        className="relative z-[10] h-svh w-full overflow-hidden"
       >
         {/* Scene 3 — nation belt visible through the portal hole */}
         <div className="absolute inset-0 z-[5] h-full w-full overflow-hidden">

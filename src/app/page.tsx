@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import ArenaHero from "@/components/landing/ArenaHero";
 import StagePortal from "@/components/landing/StagePortal";
 import ScareIntro from "@/components/landing/ScareIntro";
@@ -9,7 +9,6 @@ import { requestBackgroundMusic } from "@/lib/sounds/backgroundMusic";
 const INTRO_KEY = "wc26-intro-seen";
 
 export default function HomePage() {
-  const arenaRef = useRef<HTMLElement>(null);
   const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
@@ -40,10 +39,10 @@ export default function HomePage() {
         }}
       >
         {/* ── Scene 1: full-viewport hero ── */}
-        <ArenaHero sectionRef={arenaRef} />
+        <ArenaHero />
 
         {/* ── Scene 2 + 3: portal reveals nation belt ── */}
-        <StagePortal arenaRef={arenaRef} />
+        <StagePortal />
       </main>
     </>
   );
