@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Anton, JetBrains_Mono } from "next/font/google";
+import AudioToggle from "@/components/AudioToggle";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,7 +48,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${anton.variable} ${jetbrainsMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <AudioToggle />
+      </body>
     </html>
   );
 }

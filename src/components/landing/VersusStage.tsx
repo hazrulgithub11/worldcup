@@ -619,7 +619,13 @@ export default function VersusStage({ fixture }: Props) {
   const isSF = fixture.stage === "semi-final";
   const isKO = fixture.stage !== "group";
 
-  const sharedProps = { fixture, home, away, isKO, isFinal, isSF };
+  const fixtureWithFighters: Fixture = {
+    ...fixture,
+    homeFighterImage: fixture.homeFighterImage ?? home.fighterImage,
+    awayFighterImage: fixture.awayFighterImage ?? away.fighterImage,
+  };
+
+  const sharedProps = { fixture: fixtureWithFighters, home, away, isKO, isFinal, isSF };
 
   return (
     <AnimatePresence mode="wait">

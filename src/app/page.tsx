@@ -1,15 +1,34 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ArenaHero from "@/components/landing/ArenaHero";
 import MatchdaySelector from "@/components/landing/MatchdaySelector";
 import VersusStage from "@/components/landing/VersusStage";
 import ScheduleField from "@/components/landing/ScheduleField";
+import ScareIntro from "@/components/landing/ScareIntro";
 import { fixtures as allFixtures, Fixture } from "@/data/fixtures";
+import { playMatchSelectSound } from "@/lib/sounds/matchSelect";
+
+const INTRO_KEY = "wc26-intro-seen";
 
 export default function HomePage() {
+  const [showIntro, setShowIntro] = useState(false);
   const [activeMatchday, setActiveMatchday] = useState(1);
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const forceIntro = params.get("intro") === "1";
+    const alreadySeen = sessionStorage.getItem(INTRO_KEY);
+    if (forceIntro || !alreadySeen) {
+      setShowIntro(true);
+    }
+  }, []);
+
+  function handleIntroComplete() {
+    sessionStorage.setItem(INTRO_KEY, "1");
+    setShowIntro(false);
+  }
 
   const filteredFixtures = useMemo(
     () => allFixtures.filter((f) => f.matchday === activeMatchday),
@@ -22,18 +41,21 @@ export default function HomePage() {
   }
 
   function handleFixtureSelect(fixture: Fixture) {
+    playMatchSelectSound(fixture.stage !== "group");
     setSelectedFixture((prev) => (prev?.id === fixture.id ? null : fixture));
   }
 
   return (
-    <main
-      style={{
-        position: "relative",
-        zIndex: 2,
-        minHeight: "100vh",
-        background: "var(--clr-void)",
-      }}
-    >
+    <>
+      {showIntro && <ScareIntro onComplete={handleIntroComplete} />}
+      <main
+        style={{
+          position: "relative",
+          zIndex: 2,
+          minHeight: "100vh",
+          background: "var(--clr-void)",
+        }}
+      >
       {/* ── Scene 1: Arena Hero ── */}
       <ArenaHero />
 
@@ -106,5 +128,6 @@ export default function HomePage() {
         </div>
       </footer>
     </main>
+    </>
   );
 }
