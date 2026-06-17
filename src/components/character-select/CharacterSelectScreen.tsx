@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { fighters } from "@/data/fighters";
@@ -99,11 +100,14 @@ function StatBar({
 }
 
 export default function CharacterSelectScreen() {
+  const router = useRouter();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showNahh, setShowNahh] = useState(false);
   const [lockedIn, setLockedIn] = useState(false);
   const isMobile = useIsMobile(768);
   const skipSound = useRef(true);
+  const nahhTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fighter = fighters[focusedIndex];
   const team = teams[fighter.teamId];
@@ -158,14 +162,30 @@ export default function CharacterSelectScreen() {
   const handleConfirm = useCallback(() => {
     sessionStorage.setItem(SELECTED_FIGHTER_KEY, fighter.id);
     playMatchSelectSound(true);
-    setLockedIn(true);
+    stopCountryAnthem();
+    restoreCharacterMusicFromBlend();
     setShowConfirm(false);
+    setLockedIn(true);
+    setShowNahh(true);
   }, [fighter.id]);
 
   useEffect(() => {
     skipSound.current = false;
-    return () => stopCountryAnthem();
+    return () => {
+      stopCountryAnthem();
+      if (nahhTimer.current) clearTimeout(nahhTimer.current);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!showNahh) return;
+    nahhTimer.current = setTimeout(() => {
+      router.push("/fixtures");
+    }, 1800);
+    return () => {
+      if (nahhTimer.current) clearTimeout(nahhTimer.current);
+    };
+  }, [showNahh, router]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -183,6 +203,9 @@ export default function CharacterSelectScreen() {
   }, [goLeft, goRight, showConfirm, closeConfirm, handleConfirm, openConfirm, lockedIn]);
 
   const accentColor = team?.primaryColor ?? "#e8b84b";
+  const isArgentina = fighter.teamId === "argentina";
+  const flashWord = isArgentina ? "GOAT" : "NAHHH";
+  const flashColor = isArgentina ? "var(--clr-gold)" : "var(--clr-red-hot)";
   const mobileRosterHeight = 152;
   const mobileBottomLift = 52;
   const mobileDockBottom = mobileRosterHeight + mobileBottomLift;
@@ -239,6 +262,29 @@ export default function CharacterSelectScreen() {
             transition: "background 0.5s",
           }}
         />
+      )}
+
+      {/* ── SELECT HINT ──────────────────────────────────────── */}
+      {!lockedIn && (
+        <div
+          style={{
+            position: "absolute",
+            top: isMobile ? "clamp(4.5rem, 11vh, 5.5rem)" : "clamp(5rem, 10vh, 6.5rem)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10,
+            pointerEvents: "none",
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.45rem",
+            letterSpacing: "0.22em",
+            color: "var(--clr-text-dim)",
+            textTransform: "uppercase",
+            textAlign: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          CLICK THE CHARACTER
+        </div>
       )}
 
       {/* ── CENTER HERO: the fighter ─────────────────────────── */}
@@ -916,6 +962,49 @@ export default function CharacterSelectScreen() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── NAHHH FULL-PAGE FLASH ────────────────────────────── */}
+      <AnimatePresence>
+        {showNahh && (
+          <motion.div
+            key="nahh-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "var(--clr-void)",
+              pointerEvents: "none",
+            }}
+          >
+            <motion.h1
+              initial={{ scale: 2.4, opacity: 0, rotate: -6 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(4rem, 28vw, 16rem)",
+                color: flashColor,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                lineHeight: 0.9,
+                textAlign: "center",
+                textShadow: `0 0 60px color-mix(in srgb, ${flashColor} 70%, transparent)`,
+                margin: 0,
+                padding: "0 1rem",
+              }}
+            >
+              {flashWord}
+            </motion.h1>
           </motion.div>
         )}
       </AnimatePresence>

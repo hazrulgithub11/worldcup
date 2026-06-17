@@ -11,6 +11,7 @@ export interface Fixture {
   stage: Stage;
   matchday: number;
   groupLabel?: string;
+  bracketSlot?: string;
   homeFighterImage?: string;
   awayFighterImage?: string;
 }
@@ -195,6 +196,43 @@ export const fixtures: Fixture[] = [
     city: "New York",
     stage: "quarter-final",
     matchday: 5,
+    bracketSlot: "qf-a",
+  },
+  {
+    id: "qf-2",
+    homeTeamId: "argentina",
+    awayTeamId: "germany",
+    date: "Jul 10, 2026",
+    time: "18:00",
+    venue: "AT&T Stadium",
+    city: "Dallas",
+    stage: "quarter-final",
+    matchday: 5,
+    bracketSlot: "qf-b",
+  },
+  {
+    id: "qf-3",
+    homeTeamId: "spain",
+    awayTeamId: "portugal",
+    date: "Jul 11, 2026",
+    time: "21:00",
+    venue: "SoFi Stadium",
+    city: "Los Angeles",
+    stage: "quarter-final",
+    matchday: 5,
+    bracketSlot: "qf-c",
+  },
+  {
+    id: "qf-4",
+    homeTeamId: "england",
+    awayTeamId: "netherlands",
+    date: "Jul 11, 2026",
+    time: "18:00",
+    venue: "Rose Bowl",
+    city: "Los Angeles",
+    stage: "quarter-final",
+    matchday: 5,
+    bracketSlot: "qf-d",
   },
   {
     id: "sf-1",
@@ -206,6 +244,19 @@ export const fixtures: Fixture[] = [
     city: "Miami",
     stage: "semi-final",
     matchday: 6,
+    bracketSlot: "sf-top",
+  },
+  {
+    id: "sf-2",
+    homeTeamId: "france",
+    awayTeamId: "argentina",
+    date: "Jul 15, 2026",
+    time: "21:00",
+    venue: "MetLife Stadium",
+    city: "New York",
+    stage: "semi-final",
+    matchday: 6,
+    bracketSlot: "sf-bottom",
   },
   {
     id: "final",
@@ -217,8 +268,16 @@ export const fixtures: Fixture[] = [
     city: "New York",
     stage: "final",
     matchday: 7,
+    bracketSlot: "final",
   },
 ];
+
+export const knockoutFixtures = fixtures.filter(
+  (f) =>
+    f.stage === "quarter-final" ||
+    f.stage === "semi-final" ||
+    f.stage === "final"
+);
 
 export const matchdays = [
   { id: 1, label: "Round 1", sublabel: "Group Stage" },
