@@ -7,7 +7,15 @@ import { fighters } from "@/data/fighters";
 import { teams } from "@/data/teams";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { playCharacterBrowseSound } from "@/lib/sounds/characterBrowse";
+import { playMatchSelectSound } from "@/lib/sounds/matchSelect";
+import { playCountryAnthem, stopCountryAnthem } from "@/lib/sounds/countryAnthem";
+import {
+  blendCharacterMusicForAnthem,
+  restoreCharacterMusicFromBlend,
+} from "@/lib/sounds/characterMusic";
 import FighterRoster from "./FighterRoster";
+
+const SELECTED_FIGHTER_KEY = "wc26-selected-fighter";
 
 /* ── Fighter silhouette SVG (when no fullImage) ──────────────── */
 function FighterSilhouette({ color }: { color: string }) {
@@ -92,6 +100,8 @@ function StatBar({
 
 export default function CharacterSelectScreen() {
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [lockedIn, setLockedIn] = useState(false);
   const isMobile = useIsMobile(768);
   const skipSound = useRef(true);
 
@@ -132,18 +142,45 @@ export default function CharacterSelectScreen() {
     });
   }, []);
 
+  const openConfirm = useCallback(() => {
+    if (lockedIn) return;
+    blendCharacterMusicForAnthem();
+    playCountryAnthem(fighter.teamId);
+    setShowConfirm(true);
+  }, [lockedIn, fighter.teamId]);
+
+  const closeConfirm = useCallback(() => {
+    stopCountryAnthem();
+    restoreCharacterMusicFromBlend();
+    setShowConfirm(false);
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    sessionStorage.setItem(SELECTED_FIGHTER_KEY, fighter.id);
+    playMatchSelectSound(true);
+    setLockedIn(true);
+    setShowConfirm(false);
+  }, [fighter.id]);
+
   useEffect(() => {
     skipSound.current = false;
+    return () => stopCountryAnthem();
   }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (showConfirm) {
+        if (e.key === "Escape") { e.preventDefault(); closeConfirm(); }
+        if (e.key === "Enter") { e.preventDefault(); handleConfirm(); }
+        return;
+      }
       if (e.key === "ArrowLeft") { e.preventDefault(); goLeft(); }
       if (e.key === "ArrowRight") { e.preventDefault(); goRight(); }
+      if (e.key === "Enter" && !lockedIn) { e.preventDefault(); openConfirm(); }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goLeft, goRight]);
+  }, [goLeft, goRight, showConfirm, closeConfirm, handleConfirm, openConfirm, lockedIn]);
 
   const accentColor = team?.primaryColor ?? "#e8b84b";
   const mobileRosterHeight = 152;
@@ -205,7 +242,11 @@ export default function CharacterSelectScreen() {
       )}
 
       {/* ── CENTER HERO: the fighter ─────────────────────────── */}
-      <div
+      <button
+        type="button"
+        onClick={openConfirm}
+        disabled={lockedIn}
+        aria-label={`Select ${fighter.name}`}
         style={{
           position: "absolute",
           ...(isMobile
@@ -221,7 +262,10 @@ export default function CharacterSelectScreen() {
           width: isMobile ? "clamp(280px, 82vw, 420px)" : "clamp(360px, 46vw, 620px)",
           height: isMobile ? "clamp(340px, 58vh, 500px)" : "clamp(480px, 78vh, 820px)",
           zIndex: 3,
-          pointerEvents: "none",
+          padding: 0,
+          border: "none",
+          background: "none",
+          cursor: lockedIn ? "default" : "pointer",
           WebkitMaskImage: isMobile
             ? "linear-gradient(to bottom, black 0%, black 48%, rgba(0,0,0,0.9) 62%, rgba(0,0,0,0.55) 74%, rgba(0,0,0,0.2) 86%, transparent 100%)"
             : "linear-gradient(to bottom, black 0%, black 58%, transparent 100%)",
@@ -305,7 +349,7 @@ export default function CharacterSelectScreen() {
             zIndex: 1,
           }}
         />
-      </div>
+      </button>
 
       {/* ── GIANT NAME — desktop decorative outline over lower body ── */}
       {!isMobile && (
@@ -379,7 +423,7 @@ export default function CharacterSelectScreen() {
             marginTop: 2,
           }}
         >
-          BROWSING
+          {lockedIn ? "LOCKED IN" : "BROWSING"}
         </div>
       </div>
 
@@ -716,7 +760,7 @@ export default function CharacterSelectScreen() {
               transition: "border-color 0.15s, color 0.15s",
             }}
           >
-            ← PREV
+            ←
           </button>
           <span
             style={{
@@ -744,10 +788,137 @@ export default function CharacterSelectScreen() {
               transition: "border-color 0.15s, color 0.15s",
             }}
           >
-            NEXT →
+            →
           </button>
         </div>
       </div>
+
+      {/* ── CONFIRM SELECTION MODAL ──────────────────────────── */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div
+            key="confirm-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={closeConfirm}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 50,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1.5rem",
+              background: "rgba(0, 0, 0, 0.78)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="confirm-title"
+              initial={{ scale: 0.94, y: 16, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.94, y: 16, opacity: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "min(100%, 380px)",
+                border: `1px solid ${accentColor}`,
+                background: "var(--clr-surface)",
+                boxShadow: `0 0 40px ${accentColor}33, inset 0 0 0 1px rgba(255,255,255,0.04)`,
+                padding: "clamp(1.5rem, 5vw, 2rem)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.45rem",
+                  letterSpacing: "0.22em",
+                  color: "var(--clr-text-dim)",
+                  textTransform: "uppercase",
+                  marginBottom: 12,
+                }}
+              >
+                P1 · SELECT FIGHTER
+              </div>
+              <h2
+                id="confirm-title"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "clamp(1.4rem, 5vw, 1.8rem)",
+                  color: "var(--clr-text-primary)",
+                  textTransform: "uppercase",
+                  lineHeight: 1.05,
+                  letterSpacing: "0.04em",
+                  margin: 0,
+                }}
+              >
+                Are you sure?
+              </h2>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.55rem",
+                  letterSpacing: "0.12em",
+                  color: accentColor,
+                  textTransform: "uppercase",
+                  marginTop: 10,
+                }}
+              >
+                {fighter.name} · {team?.shortName ?? fighter.nationality}
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 12,
+                  marginTop: 28,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={closeConfirm}
+                  style={{
+                    background: "none",
+                    border: "1px solid var(--clr-border)",
+                    color: "var(--clr-text-secondary)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.14em",
+                    padding: "10px 18px",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  style={{
+                    background: `${accentColor}22`,
+                    border: `1px solid ${accentColor}`,
+                    color: "var(--clr-text-primary)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.14em",
+                    padding: "10px 18px",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    boxShadow: `0 0 16px ${accentColor}44`,
+                  }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

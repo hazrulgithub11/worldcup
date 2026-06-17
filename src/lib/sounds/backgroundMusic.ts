@@ -2,7 +2,9 @@ const SONG_SRC = "/audio/song.mp3";
 
 let audio: HTMLAudioElement | null = null;
 let userPaused = false;
+let suspended = false;
 const listeners = new Set<(playing: boolean) => void>();
+let clearInteractionFallback: (() => void) | null = null;
 
 function getAudio() {
   if (typeof window === "undefined") return null;
@@ -20,6 +22,11 @@ function notify(playing: boolean) {
   listeners.forEach((fn) => fn(playing));
 }
 
+function removeInteractionFallback() {
+  clearInteractionFallback?.();
+  clearInteractionFallback = null;
+}
+
 export function subscribeBackgroundMusic(listener: (playing: boolean) => void): () => void {
   listeners.add(listener);
   listener(audio ? !audio.paused : false);
@@ -29,33 +36,43 @@ export function subscribeBackgroundMusic(listener: (playing: boolean) => void): 
 }
 
 export function startBackgroundMusic() {
-  if (userPaused) return;
+  if (userPaused || suspended) return;
   const el = getAudio();
-  if (!el) return;
+  if (!el || !el.paused) return;
+  removeInteractionFallback();
   void el.play().catch(() => notify(false));
 }
 
 export function requestBackgroundMusic() {
-  if (userPaused) return;
+  if (userPaused || suspended) return;
   const el = getAudio();
   if (!el) return;
+  if (!el.paused) return;
 
+  removeInteractionFallback();
   void el.play().catch(() => {
     const onInteraction = () => {
-      if (!userPaused) void el.play().catch(() => notify(false));
+      removeInteractionFallback();
+      if (!userPaused && !suspended) void el.play().catch(() => notify(false));
     };
     document.addEventListener("pointerdown", onInteraction, { once: true });
     document.addEventListener("keydown", onInteraction, { once: true });
+    clearInteractionFallback = () => {
+      document.removeEventListener("pointerdown", onInteraction);
+      document.removeEventListener("keydown", onInteraction);
+    };
   });
 }
 
 export function pauseBackgroundMusic() {
   userPaused = true;
+  removeInteractionFallback();
   audio?.pause();
 }
 
 export function resumeBackgroundMusic() {
   userPaused = false;
+  suspended = false;
   startBackgroundMusic();
 }
 
@@ -67,8 +84,14 @@ export function toggleBackgroundMusic() {
   }
 }
 
-export function disposeBackgroundMusic() {
+export function suspendBackgroundMusic() {
+  suspended = true;
+  removeInteractionFallback();
   audio?.pause();
-  audio = null;
-  listeners.clear();
+  notify(false);
+}
+
+export function resumeSuspendedBackgroundMusic() {
+  suspended = false;
+  if (!userPaused) startBackgroundMusic();
 }

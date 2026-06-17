@@ -1,20 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   subscribeBackgroundMusic,
   toggleBackgroundMusic,
 } from "@/lib/sounds/backgroundMusic";
+import {
+  subscribeCharacterMusic,
+  toggleCharacterMusic,
+} from "@/lib/sounds/characterMusic";
 
 export default function AudioToggle() {
+  const pathname = usePathname();
+  const isCharacterSelect = pathname.startsWith("/character-select");
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
+    if (isCharacterSelect) {
+      return subscribeCharacterMusic(setPlaying);
+    }
     return subscribeBackgroundMusic(setPlaying);
-  }, []);
+  }, [isCharacterSelect]);
 
   function toggle() {
-    toggleBackgroundMusic();
+    if (isCharacterSelect) {
+      toggleCharacterMusic();
+    } else {
+      toggleBackgroundMusic();
+    }
   }
 
   return (
