@@ -62,8 +62,8 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
     const ctx = gsap.context(() => {
       const stackSt = {
         trigger: runwayRef.current,
-        start: "top bottom",
-        end: "top top",
+        start: "top top",
+        end: "+=100svh",
         scrub: 0.6,
       };
 
@@ -78,7 +78,7 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
 
       gsap.fromTo(
         stageLayerRef.current,
-        { y: "100vh" },
+        { y: "100svh" },
         { y: 0, ease: "none", scrollTrigger: stackSt }
       );
 
@@ -148,7 +148,7 @@ export default function StagePortal({ arenaRef }: StagePortalProps) {
       <div
         ref={stageLayerRef}
         className="absolute inset-x-0 top-0 z-[10] h-svh w-full overflow-hidden"
-        style={{ transform: "translateY(100vh)" }}
+        style={{ transform: "translateY(100svh)" }}
       >
         {/* Scene 3 — nation belt visible through the portal hole */}
         <div className="absolute inset-0 z-[5] h-full w-full overflow-hidden">
