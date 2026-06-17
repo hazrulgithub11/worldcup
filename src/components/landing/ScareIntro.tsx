@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { startBackgroundMusic } from "@/lib/sounds/backgroundMusic";
 import { playScareIntroSound, playScareExitSound } from "@/lib/sounds/scareIntro";
 
 type Phase = "waiting" | "slamming" | "holding" | "exiting";
@@ -32,6 +33,7 @@ export default function ScareIntro({ onComplete }: Props) {
   function handleContinue() {
     if (phase !== "holding") return;
     playScareExitSound();
+    startBackgroundMusic();
     setPhase("exiting");
     exitTimer.current = setTimeout(onComplete, 700);
   }

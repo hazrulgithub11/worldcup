@@ -1,0 +1,237 @@
+"use client";
+
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import NationBelt from "@/components/landing/NationBelt";
+
+gsap.registerPlugin(ScrollTrigger);
+
+/** Scroll distance for the portal hole animation */
+export const STAGE_RUNWAY_VH = 800;
+
+/** Scroll distance for scene 2 sliding up over scene 1 */
+const STACK_SCROLL_VH = 100;
+
+const RUNWAY_TOTAL_VH = STACK_SCROLL_VH + STAGE_RUNWAY_VH;
+
+/** Hole center — aligned to the red frame in stage-web.png */
+const HOLE_CENTER = { cx: 0.5, cy: 0.44 };
+
+/** Tiny peephole at scroll start, expands to full bleed */
+const HOLE_START_SIZE = { w: 0.042, h: 0.022 };
+
+const HOLE_START = {
+  x: HOLE_CENTER.cx - HOLE_START_SIZE.w / 2,
+  y: HOLE_CENTER.cy - HOLE_START_SIZE.h / 2,
+  width: HOLE_START_SIZE.w,
+  height: HOLE_START_SIZE.h,
+};
+
+const HOLE_END = { x: -1, y: -1, width: 3, height: 3 };
+
+/** Soft feather on the mask cutout (objectBoundingBox units) */
+const HOLE_EDGE_BLUR = 0.006;
+
+interface StagePortalProps {
+  arenaRef?: RefObject<HTMLElement | null>;
+}
+
+export default function StagePortal({ arenaRef }: StagePortalProps) {
+  const runwayRef = useRef<HTMLDivElement>(null);
+  const stageLayerRef = useRef<HTMLDivElement>(null);
+  const holeRef = useRef<SVGRectElement>(null);
+  const rimRef = useRef<SVGRectElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const rimLayerRef = useRef<SVGSVGElement>(null);
+  const uid = useId().replace(/:/g, "");
+  const maskId = `stage-mask-${uid}`;
+  const holeBlurId = `stage-hole-blur-${uid}`;
+  const rimGlowId = `stage-rim-glow-${uid}`;
+  const [skip, setSkip] = useState(true);
+
+  useEffect(() => {
+    setSkip(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }, []);
+
+  useEffect(() => {
+    if (skip) return;
+
+    const ctx = gsap.context(() => {
+      const stackSt = {
+        trigger: runwayRef.current,
+        start: "top bottom",
+        end: "top top",
+        scrub: 0.6,
+      };
+
+      /* Pin scene 1 while scene 2 slides up to cover it */
+      if (arenaRef?.current) {
+        ScrollTrigger.create({
+          ...stackSt,
+          pin: arenaRef.current,
+          pinSpacing: false,
+        });
+      }
+
+      gsap.fromTo(
+        stageLayerRef.current,
+        { y: "100vh" },
+        { y: 0, ease: "none", scrollTrigger: stackSt }
+      );
+
+      const portalSt = {
+        trigger: runwayRef.current,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.6,
+      };
+
+      ScrollTrigger.create({
+        ...portalSt,
+        pin: stageLayerRef.current,
+        pinSpacing: false,
+        anticipatePin: 1,
+      });
+
+      gsap.fromTo(
+        [holeRef.current, rimRef.current],
+        { attr: HOLE_START },
+        { attr: HOLE_END, ease: "none", scrollTrigger: portalSt }
+      );
+
+      gsap.fromTo(
+        rimLayerRef.current,
+        { opacity: 1 },
+        {
+          opacity: 0,
+          ease: "power2.in",
+          scrollTrigger: {
+            ...portalSt,
+            start: "15% top",
+            end: "85% top",
+            scrub: 0.6,
+          },
+        }
+      );
+
+      gsap.fromTo(
+        overlayRef.current,
+        { autoAlpha: 1 },
+        {
+          autoAlpha: 0,
+          ease: "none",
+          scrollTrigger: {
+            ...portalSt,
+            start: "70% top",
+            end: "bottom bottom",
+            scrub: 0.6,
+          },
+        }
+      );
+    }, runwayRef);
+
+    return () => ctx.revert();
+  }, [skip, arenaRef]);
+
+  if (skip) return <NationBelt />;
+
+  return (
+    <div
+      ref={runwayRef}
+      className="relative z-10"
+      style={{ height: `${RUNWAY_TOTAL_VH}vh` }}
+    >
+      {/* Scene 2 + 3 — slide up over scene 1, then pin for portal scroll */}
+      <div
+        ref={stageLayerRef}
+        className="absolute inset-x-0 top-0 z-[10] h-svh w-full overflow-hidden"
+        style={{ transform: "translateY(100vh)" }}
+      >
+        {/* Scene 3 — nation belt visible through the portal hole */}
+        <div className="absolute inset-0 z-[5] h-full w-full overflow-hidden">
+          <NationBelt embedded />
+        </div>
+
+        {/* Scene 2 — portal frame */}
+        <div className="pointer-events-none absolute inset-0 z-[10] h-full w-full overflow-hidden">
+          <svg
+            className="pointer-events-none absolute h-0 w-0"
+            aria-hidden
+            focusable="false"
+          >
+            <defs>
+              <filter id={holeBlurId} x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation={HOLE_EDGE_BLUR} />
+              </filter>
+              <filter id={rimGlowId} x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur stdDeviation="0.006" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <mask
+                id={maskId}
+                maskUnits="objectBoundingBox"
+                maskContentUnits="objectBoundingBox"
+              >
+                <rect width="1" height="1" fill="white" />
+                <rect
+                  ref={holeRef}
+                  fill="black"
+                  filter={`url(#${holeBlurId})`}
+                  {...HOLE_START}
+                />
+              </mask>
+            </defs>
+          </svg>
+
+          <div
+            ref={overlayRef}
+            className="absolute inset-0"
+            style={{
+              mask: `url(#${maskId})`,
+              WebkitMask: `url(#${maskId})`,
+            }}
+          >
+            <img
+              src="/stage-mobile.png"
+              alt=""
+              className="h-full w-full object-cover object-center sm:hidden"
+              draggable={false}
+            />
+            <img
+              src="/stage-web.png"
+              alt=""
+              className="hidden h-full w-full object-cover object-[center_36%] sm:block"
+              draggable={false}
+            />
+          </div>
+
+          {/* Rim glow — tracks the hole, blurs and fades on scroll */}
+          <svg
+            ref={rimLayerRef}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            viewBox="0 0 1 1"
+            preserveAspectRatio="none"
+            aria-hidden
+            focusable="false"
+          >
+            <rect
+              ref={rimRef}
+              fill="none"
+              stroke="var(--clr-red-hot)"
+              strokeWidth={0.0035}
+              filter={`url(#${rimGlowId})`}
+              {...HOLE_START}
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { motion } from "framer-motion";
 
-export default function ArenaHero() {
+interface ArenaHeroProps {
+  sectionRef?: RefObject<HTMLElement | null>;
+}
+
+export default function ArenaHero({ sectionRef }: ArenaHeroProps) {
   const timerRef = useRef<HTMLSpanElement>(null);
 
   /* Fake match timer counting down from 07:03 */
@@ -22,28 +26,31 @@ export default function ArenaHero() {
 
   return (
     <section
-      className="relative w-full overflow-hidden"
-      style={{ minHeight: "100svh" }}
+      ref={sectionRef}
+      className="relative z-0 w-full overflow-hidden"
+      style={{ height: "100svh" }}
     >
       {/* ── Layer 0: hero background — mobile portrait / desktop landscape ── */}
-      <div
-        className="absolute inset-0 sm:hidden"
-        style={{
-          backgroundImage: "url('/background.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center top",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-      <div
-        className="absolute inset-0 hidden sm:block"
-        style={{
-          backgroundImage: "url('/background%20desktop.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
+      <div className="absolute inset-0">
+        <div
+          className="absolute inset-0 sm:hidden"
+          style={{
+            backgroundImage: "url('/background.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+        <div
+          className="absolute inset-0 hidden sm:block"
+          style={{
+            backgroundImage: "url('/background%20desktop.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+      </div>
 
       {/* ── Layer 1: readability overlay ── */}
       <div
@@ -207,14 +214,6 @@ export default function ArenaHero() {
           ↓
         </motion.div>
       </motion.div>
-
-      {/* ── Bottom fade into next scene ── */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10"
-        style={{
-          background: "linear-gradient(to bottom, transparent, var(--clr-void))",
-        }}
-      />
     </section>
   );
 }
