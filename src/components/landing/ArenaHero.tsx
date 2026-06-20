@@ -193,7 +193,7 @@ export default function ArenaHero({ sectionRef }: ArenaHeroProps) {
           letterSpacing: "0.3em",
         }}
       >
-        FIGHT NIGHT SCHEDULE
+        MOMENT
       </motion.p>
 
       {/* ── Layer 4: scroll invitation ── */}

@@ -224,7 +224,6 @@ export default function NationBelt({ embedded = false }: NationBeltProps) {
         ref={viewportRef}
         className="relative z-[3] flex flex-1 items-center justify-center"
         style={{
-          marginTop: "clamp(2rem, 6vh, 4rem)",
           maskImage: reduced
             ? undefined
             : "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
@@ -265,35 +264,13 @@ export default function NationBelt({ embedded = false }: NationBeltProps) {
             </div>
           ))}
         </div>
-
-        {/* Center focus reticle */}
-        {!reduced && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 z-[4] -translate-x-1/2 -translate-y-1/2"
-            style={{
-              width: "clamp(7.5rem, 17vw, 12rem)",
-              height: "clamp(10rem, 24vh, 15rem)",
-              border: "1px solid rgba(232, 184, 75, 0.22)",
-              boxShadow:
-                "inset 0 0 32px rgba(232, 184, 75, 0.06), 0 0 48px rgba(232, 184, 75, 0.08)",
-            }}
-          />
-        )}
       </div>
 
       {/* Footer */}
       <div
-        className="relative z-20 flex flex-col items-center gap-4 pb-12 pt-6 sm:pb-16"
-        style={{ paddingLeft: "clamp(0.75rem, 10vw, 4rem)" }}
+        className="absolute inset-x-0 z-20 flex justify-center text-center"
+        style={{ bottom: "clamp(3rem, 10vh, 5.5rem)" }}
       >
-        <p
-          className="text-fine text-center"
-          style={{ color: "var(--clr-text-secondary)", maxWidth: "28ch" }}
-        >
-          Every crest locks a fighter. Choose your side in the arena.
-        </p>
-
         <Link
           href="/character-select"
           className="text-micro"
@@ -301,8 +278,6 @@ export default function NationBelt({ embedded = false }: NationBeltProps) {
             color: "var(--clr-gold)",
             letterSpacing: "0.28em",
             textDecoration: "none",
-            borderBottom: "1px solid var(--clr-gold-dim)",
-            paddingBottom: 2,
           }}
         >
           ENTER ROSTER →

@@ -34,13 +34,10 @@ export default function StagePortal() {
   const runwayRef = useRef<HTMLDivElement>(null);
   const stageLayerRef = useRef<HTMLDivElement>(null);
   const holeRef = useRef<SVGRectElement>(null);
-  const rimRef = useRef<SVGRectElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const rimLayerRef = useRef<SVGSVGElement>(null);
   const uid = useId().replace(/:/g, "");
   const maskId = `stage-mask-${uid}`;
   const holeBlurId = `stage-hole-blur-${uid}`;
-  const rimGlowId = `stage-rim-glow-${uid}`;
   const [skip, setSkip] = useState(true);
 
   useEffect(() => {
@@ -68,24 +65,9 @@ export default function StagePortal() {
       });
 
       gsap.fromTo(
-        [holeRef.current, rimRef.current],
+        holeRef.current,
         { attr: HOLE_START },
         { attr: HOLE_END, ease: "none", scrollTrigger: portalSt }
-      );
-
-      gsap.fromTo(
-        rimLayerRef.current,
-        { opacity: 1 },
-        {
-          opacity: 0,
-          ease: "power2.in",
-          scrollTrigger: {
-            ...portalSt,
-            start: "15% top",
-            end: "85% top",
-            scrub: 0.6,
-          },
-        }
       );
 
       gsap.fromTo(
@@ -136,14 +118,6 @@ export default function StagePortal() {
               <filter id={holeBlurId} x="-30%" y="-30%" width="160%" height="160%">
                 <feGaussianBlur stdDeviation={HOLE_EDGE_BLUR} />
               </filter>
-              <filter id={rimGlowId} x="-80%" y="-80%" width="260%" height="260%">
-                <feGaussianBlur stdDeviation="0.006" result="glow" />
-                <feMerge>
-                  <feMergeNode in="glow" />
-                  <feMergeNode in="glow" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
               <mask
                 id={maskId}
                 maskUnits="objectBoundingBox"
@@ -181,25 +155,6 @@ export default function StagePortal() {
               draggable={false}
             />
           </div>
-
-          {/* Rim glow — tracks the hole, blurs and fades on scroll */}
-          <svg
-            ref={rimLayerRef}
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            viewBox="0 0 1 1"
-            preserveAspectRatio="none"
-            aria-hidden
-            focusable="false"
-          >
-            <rect
-              ref={rimRef}
-              fill="none"
-              stroke="var(--clr-red-hot)"
-              strokeWidth={0.0035}
-              filter={`url(#${rimGlowId})`}
-              {...HOLE_START}
-            />
-          </svg>
         </div>
       </div>
     </div>

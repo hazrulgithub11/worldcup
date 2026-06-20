@@ -9,6 +9,7 @@ import { requestBackgroundMusic } from "@/lib/sounds/backgroundMusic";
 const INTRO_KEY = "wc26-intro-seen";
 
 export default function HomePage() {
+  const [introChecked, setIntroChecked] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function HomePage() {
     } else {
       requestBackgroundMusic();
     }
+    setIntroChecked(true);
   }, []);
 
   function handleIntroComplete() {
@@ -27,15 +29,29 @@ export default function HomePage() {
     setShowIntro(false);
   }
 
+  const homeVisible = introChecked && !showIntro;
+
   return (
     <>
       {showIntro && <ScareIntro onComplete={handleIntroComplete} />}
+      {!introChecked && (
+        <div
+          aria-hidden
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9998,
+            background: "var(--clr-void)",
+          }}
+        />
+      )}
       <main
         style={{
           position: "relative",
           zIndex: 2,
           minHeight: "100vh",
           background: "var(--clr-void)",
+          visibility: homeVisible ? "visible" : "hidden",
         }}
       >
         {/* ── Scene 1: full-viewport hero ── */}
