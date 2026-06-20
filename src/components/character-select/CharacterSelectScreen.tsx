@@ -8,15 +8,17 @@ import { fighters } from "@/data/fighters";
 import { teams } from "@/data/teams";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { playCharacterBrowseSound } from "@/lib/sounds/characterBrowse";
-import { playMatchSelectSound } from "@/lib/sounds/matchSelect";
 import { playCountryAnthem, stopCountryAnthem } from "@/lib/sounds/countryAnthem";
 import {
   blendCharacterMusicForAnthem,
   restoreCharacterMusicFromBlend,
+  stopCharacterMusic,
 } from "@/lib/sounds/characterMusic";
 import FighterRoster from "./FighterRoster";
+import StoryTransition from "./StoryTransition";
 
 const SELECTED_FIGHTER_KEY = "wc26-selected-fighter";
+export const NAV_TO_HISTORY_KEY = "wc26-nav-to-history";
 
 /* ── Fighter silhouette SVG (when no fullImage) ──────────────── */
 function FighterSilhouette({ color }: { color: string }) {
@@ -103,11 +105,10 @@ export default function CharacterSelectScreen() {
   const router = useRouter();
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showNahh, setShowNahh] = useState(false);
+  const [showStoryTransition, setShowStoryTransition] = useState(false);
   const [lockedIn, setLockedIn] = useState(false);
   const isMobile = useIsMobile(768);
   const skipSound = useRef(true);
-  const nahhTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fighter = fighters[focusedIndex];
   const team = teams[fighter.teamId];
@@ -161,31 +162,24 @@ export default function CharacterSelectScreen() {
 
   const handleConfirm = useCallback(() => {
     sessionStorage.setItem(SELECTED_FIGHTER_KEY, fighter.id);
-    playMatchSelectSound(true);
     stopCountryAnthem();
-    restoreCharacterMusicFromBlend();
+    stopCharacterMusic();
     setShowConfirm(false);
     setLockedIn(true);
-    setShowNahh(true);
+    setShowStoryTransition(true);
   }, [fighter.id]);
+
+  const handleStoryTransitionComplete = useCallback(() => {
+    sessionStorage.setItem(NAV_TO_HISTORY_KEY, "1");
+    router.push("/history");
+  }, [router]);
 
   useEffect(() => {
     skipSound.current = false;
     return () => {
       stopCountryAnthem();
-      if (nahhTimer.current) clearTimeout(nahhTimer.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!showNahh) return;
-    nahhTimer.current = setTimeout(() => {
-      router.push("/fixtures");
-    }, 1800);
-    return () => {
-      if (nahhTimer.current) clearTimeout(nahhTimer.current);
-    };
-  }, [showNahh, router]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -203,9 +197,6 @@ export default function CharacterSelectScreen() {
   }, [goLeft, goRight, showConfirm, closeConfirm, handleConfirm, openConfirm, lockedIn]);
 
   const accentColor = team?.primaryColor ?? "#e8b84b";
-  const isArgentina = fighter.teamId === "argentina";
-  const flashWord = isArgentina ? "GOAT" : "NAHHH";
-  const flashColor = isArgentina ? "var(--clr-gold)" : "var(--clr-red-hot)";
   const mobileRosterHeight = 152;
   const mobileBottomLift = 52;
   const mobileDockBottom = mobileRosterHeight + mobileBottomLift;
@@ -966,48 +957,22 @@ export default function CharacterSelectScreen() {
         )}
       </AnimatePresence>
 
-      {/* ── NAHHH FULL-PAGE FLASH ────────────────────────────── */}
-      <AnimatePresence>
-        {showNahh && (
-          <motion.div
-            key="nahh-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+      {/* ── STORY TRANSITION ─────────────────────────────────── */}
+      {showStoryTransition && (
+        <>
+          <div
+            aria-hidden
             style={{
               position: "fixed",
               inset: 0,
-              zIndex: 100,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              zIndex: 9998,
               background: "var(--clr-void)",
               pointerEvents: "none",
             }}
-          >
-            <motion.h1
-              initial={{ scale: 2.4, opacity: 0, rotate: -6 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(4rem, 28vw, 16rem)",
-                color: flashColor,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                lineHeight: 0.9,
-                textAlign: "center",
-                textShadow: `0 0 60px color-mix(in srgb, ${flashColor} 70%, transparent)`,
-                margin: 0,
-                padding: "0 1rem",
-              }}
-            >
-              {flashWord}
-            </motion.h1>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          />
+          <StoryTransition onComplete={handleStoryTransitionComplete} />
+        </>
+      )}
     </div>
   );
 }

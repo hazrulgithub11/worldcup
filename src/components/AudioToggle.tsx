@@ -10,22 +10,32 @@ import {
   subscribeCharacterMusic,
   toggleCharacterMusic,
 } from "@/lib/sounds/characterMusic";
+import {
+  subscribeHistoryMusic,
+  toggleHistoryMusic,
+} from "@/lib/sounds/historyMusic";
 
 export default function AudioToggle() {
   const pathname = usePathname();
   const isCharacterSelect = pathname.startsWith("/character-select");
+  const isHistory = pathname.startsWith("/history");
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     if (isCharacterSelect) {
       return subscribeCharacterMusic(setPlaying);
     }
+    if (isHistory) {
+      return subscribeHistoryMusic(setPlaying);
+    }
     return subscribeBackgroundMusic(setPlaying);
-  }, [isCharacterSelect]);
+  }, [isCharacterSelect, isHistory]);
 
   function toggle() {
     if (isCharacterSelect) {
       toggleCharacterMusic();
+    } else if (isHistory) {
+      toggleHistoryMusic();
     } else {
       toggleBackgroundMusic();
     }

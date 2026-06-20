@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ChampionIntro from "./ChampionIntro";
-import CharacterSelectScreen from "./CharacterSelectScreen";
+import CharacterSelectScreen, { NAV_TO_HISTORY_KEY } from "./CharacterSelectScreen";
 import {
   resumeSuspendedBackgroundMusic,
   suspendBackgroundMusic,
@@ -20,7 +20,12 @@ export default function CharacterSelectWrapper() {
     enterCharacterSelectMusic();
     return () => {
       stopCharacterMusic();
-      resumeSuspendedBackgroundMusic();
+      const headingToHistory = sessionStorage.getItem(NAV_TO_HISTORY_KEY) === "1";
+      if (headingToHistory) {
+        sessionStorage.removeItem(NAV_TO_HISTORY_KEY);
+      } else {
+        resumeSuspendedBackgroundMusic();
+      }
     };
   }, []);
 
