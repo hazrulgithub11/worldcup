@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -26,7 +26,7 @@ function getMobile() {
   return window.matchMedia("(max-width: 639px)").matches;
 }
 
-export const HISTORY_RUNWAY_VH = 3500;
+export const HISTORY_RUNWAY_VH = 3600;
 
 /** Canvas background */
 const CANVAS_COLOR = "#f4efe6";
@@ -207,6 +207,59 @@ function addLegacyBridge(tl: gsap.core.Timeline, legacyEl: HTMLParagraphElement 
     .set(legacyEl, { visibility: "hidden", zIndex: 1 });
 }
 
+type TapToEndRefs = {
+  tapToEnd: HTMLButtonElement | null;
+};
+
+function addTapToEndPrompt(tl: gsap.core.Timeline, refs: TapToEndRefs) {
+  const { tapToEnd } = refs;
+
+  tl.to({}, { duration: 0.12 })
+    .set(tapToEnd, {
+      autoAlpha: 0,
+      visibility: "visible",
+      zIndex: 10,
+      pointerEvents: "auto",
+    })
+    .to(tapToEnd, { autoAlpha: 1, duration: 0.08, ease: "none" })
+    .to({}, { duration: 0.04 });
+}
+
+type CreditsOutroRefs = {
+  outroLayer: HTMLDivElement | null;
+  tapToEnd: HTMLButtonElement | null;
+  blackOverlay: HTMLDivElement | null;
+  credits: HTMLDivElement | null;
+  directorLine: HTMLParagraphElement | null;
+  signature: HTMLDivElement | null;
+};
+
+function getCreditsEndY(credits: HTMLDivElement, directorLine: HTMLParagraphElement) {
+  const directorBottom = directorLine.offsetTop + directorLine.offsetHeight + 16;
+  return -directorBottom;
+}
+
+function buildCreditsOutroTimeline(refs: CreditsOutroRefs) {
+  const { outroLayer, tapToEnd, blackOverlay, credits, directorLine, signature } = refs;
+  if (!credits || !directorLine || !signature || !outroLayer || !blackOverlay) {
+    return gsap.timeline();
+  }
+
+  const creditsEndY = getCreditsEndY(credits, directorLine);
+
+  return gsap
+    .timeline({ defaults: { ease: "power2.inOut" } })
+    .set(outroLayer, { autoAlpha: 1, visibility: "visible", pointerEvents: "none" })
+    .to(tapToEnd, { autoAlpha: 0, duration: 0.35, ease: "power2.in" })
+    .set(tapToEnd, { visibility: "hidden", pointerEvents: "none" })
+    .set(blackOverlay, { autoAlpha: 0, visibility: "visible" })
+    .to(blackOverlay, { autoAlpha: 1, duration: 1.1 })
+    .set(credits, { autoAlpha: 1, visibility: "visible", y: "55vh" }, "-=0.4")
+    .to(credits, { y: creditsEndY, duration: 7.5, ease: "none" })
+    .set(credits, { autoAlpha: 0, visibility: "hidden" })
+    .set(signature, { autoAlpha: 1, visibility: "visible", scale: 1 }, "<");
+}
+
 type ChapterSceneProps = {
   stageRef: RefObject<HTMLDivElement | null>;
   sceneRef: RefObject<HTMLDivElement | null>;
@@ -354,6 +407,15 @@ export default function HistoryHero() {
   const titleRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const legacyRef = useRef<HTMLParagraphElement>(null);
+  const tapToEndRef = useRef<HTMLButtonElement>(null);
+  const outroLayerRef = useRef<HTMLDivElement>(null);
+  const blackOverlayRef = useRef<HTMLDivElement>(null);
+  const creditsRef = useRef<HTMLDivElement>(null);
+  const directorLineRef = useRef<HTMLParagraphElement>(null);
+  const signatureRef = useRef<HTMLDivElement>(null);
+  const outroPlayedRef = useRef(false);
+  const creditsTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const playCreditsOutroRef = useRef<(() => void) | null>(null);
 
   const stage2006Ref = useRef<HTMLDivElement>(null);
   const scene2006Ref = useRef<HTMLDivElement>(null);
@@ -393,6 +455,10 @@ export default function HistoryHero() {
   const isMobile = useSyncExternalStore(subscribeMobile, getMobile, () => false);
 
   const layout = isMobile ? LAYOUT_MOBILE : LAYOUT_DESKTOP;
+
+  const handleTapToEnd = useCallback(() => {
+    playCreditsOutroRef.current?.();
+  }, []);
 
   useEffect(() => {
     if (skip) return;
@@ -445,6 +511,45 @@ export default function HistoryHero() {
       initChapter(chapter2022, layout);
 
       gsap.set(legacyRef.current, { autoAlpha: 0, visibility: "hidden", zIndex: 1 });
+      gsap.set(tapToEndRef.current, {
+        autoAlpha: 0,
+        visibility: "hidden",
+        zIndex: 1,
+        pointerEvents: "none",
+      });
+      gsap.set(outroLayerRef.current, {
+        autoAlpha: 0,
+        visibility: "hidden",
+        pointerEvents: "none",
+      });
+      gsap.set(blackOverlayRef.current, { autoAlpha: 0, visibility: "hidden" });
+      gsap.set(creditsRef.current, { autoAlpha: 0, visibility: "hidden", y: 0 });
+      gsap.set(signatureRef.current, { autoAlpha: 0, visibility: "hidden", scale: 1 });
+
+      outroPlayedRef.current = false;
+      creditsTimelineRef.current?.kill();
+      creditsTimelineRef.current = null;
+
+      const creditsOutroRefs: CreditsOutroRefs = {
+        outroLayer: outroLayerRef.current,
+        tapToEnd: tapToEndRef.current,
+        blackOverlay: blackOverlayRef.current,
+        credits: creditsRef.current,
+        directorLine: directorLineRef.current,
+        signature: signatureRef.current,
+      };
+
+      playCreditsOutroRef.current = () => {
+        if (outroPlayedRef.current) return;
+        outroPlayedRef.current = true;
+
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+
+        gsap.context(() => {
+          creditsTimelineRef.current = buildCreditsOutroTimeline(creditsOutroRefs);
+        }, outroLayerRef);
+      };
 
       const master = gsap.timeline({
         scrollTrigger: {
@@ -483,9 +588,17 @@ export default function HistoryHero() {
       addLegacyBridge(master, legacyRef.current);
       prepareChapter(master, chapter2022, layout);
       addChapterSlides(master, chapter2022, layout);
+      addTapToEndPrompt(master, { tapToEnd: tapToEndRef.current });
     }, runwayRef);
 
-    return () => ctx.revert();
+    return () => {
+      playCreditsOutroRef.current = null;
+      creditsTimelineRef.current?.kill();
+      creditsTimelineRef.current = null;
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      ctx.revert();
+    };
   }, [skip, isMobile]);
 
   if (skip) {
@@ -624,6 +737,26 @@ export default function HistoryHero() {
           {LEGACY_BRIDGE_TEXT}
         </p>
 
+        <button
+          ref={tapToEndRef}
+          type="button"
+          onClick={handleTapToEnd}
+          className="absolute inset-0 z-[10] flex cursor-pointer items-center justify-center border-0 bg-transparent opacity-0 will-change-transform"
+          style={{
+            visibility: "hidden",
+            pointerEvents: "none",
+            fontFamily: '"Times New Roman", Times, serif',
+            fontSize: isMobile ? "clamp(1.05rem, 4.5vw, 1.35rem)" : "clamp(1.15rem, 2.6vw, 1.55rem)",
+            fontStyle: "italic",
+            letterSpacing: "0.14em",
+            textTransform: "lowercase",
+            color: "rgba(42, 36, 32, 0.62)",
+          }}
+          aria-label="Tap to end story and play credits"
+        >
+          tap to end
+        </button>
+
         <div
           ref={titleRef}
           className="absolute inset-0 z-[4] flex flex-col items-center justify-center px-6 text-center will-change-transform"
@@ -651,6 +784,69 @@ export default function HistoryHero() {
           <span
             className="block h-1.5 w-1.5 rounded-full"
             style={{ background: "#9a9a9a" }}
+          />
+        </div>
+      </div>
+
+      <div
+        ref={outroLayerRef}
+        className="pointer-events-none fixed inset-0 z-[200] opacity-0"
+        style={{ visibility: "hidden" }}
+        aria-hidden
+      >
+        <div
+          ref={blackOverlayRef}
+          className="absolute inset-0 bg-black opacity-0"
+          style={{ visibility: "hidden" }}
+          aria-hidden
+        />
+
+        <div
+          ref={creditsRef}
+          className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-6 px-8 text-center opacity-0 will-change-transform"
+          style={{ visibility: "hidden" }}
+        >
+          <p
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: isMobile ? "clamp(1rem, 4.5vw, 1.25rem)" : "clamp(1.1rem, 2.2vw, 1.45rem)",
+              fontWeight: 400,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "rgba(244, 239, 230, 0.92)",
+              margin: 0,
+            }}
+          >
+            Thank you for watching
+          </p>
+          <p
+            ref={directorLineRef}
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: isMobile ? "clamp(0.8rem, 3.6vw, 0.95rem)" : "clamp(0.85rem, 1.5vw, 1rem)",
+              fontStyle: "italic",
+              letterSpacing: "0.06em",
+              color: "rgba(244, 239, 230, 0.65)",
+              margin: 0,
+            }}
+          >
+            Directed by Hazrul
+          </p>
+        </div>
+
+        <div
+          ref={signatureRef}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 will-change-transform"
+          style={{ visibility: "hidden" }}
+        >
+          <img
+            src="/hazrul.jpeg"
+            alt="Hazrul"
+            className="object-contain"
+            style={{
+              width: isMobile ? "min(72vw, 280px)" : "min(42vw, 360px)",
+            }}
+            draggable={false}
           />
         </div>
       </div>
